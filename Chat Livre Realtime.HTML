@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Livre - Tempo Real</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f6ff',
+                            100: '#e0edff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.3); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.5); }
+        .glass {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .light .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-gray-950 dark:bg-gray-950 light:bg-gray-100 text-gray-100 dark:text-gray-100 light:text-gray-800 h-screen overflow-hidden flex flex-col justify-center items-center p-0 md:p-4 transition-colors duration-200">
+
+    <!-- Modal de Autenticação (Login / Cadastro / Google / Anônimo) -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 light:bg-white border border-gray-800 light:border-gray-200 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transition-all transform">
+            
+            <!-- Cabeçalho do Modal -->
+            <div class="p-6 text-center border-b border-gray-800/80 light:border-gray-100 relative">
+                <div class="w-14 h-14 bg-brand-600/20 text-brand-500 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3 border border-brand-500/30 shadow-lg shadow-brand-500/10">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <h2 class="text-2xl font-bold tracking-tight text-white light:text-gray-900">Chat Livre</h2>
+                <p class="text-xs text-gray-400 light:text-gray-500 mt-1">Conecte-se em tempo real com pessoas do mundo todo</p>
+            </div>
+
+            <!-- Navegação por Abas -->
+            <div class="flex border-b border-gray-800 light:border-gray-200 bg-gray-950/50 light:bg-gray-50 p-1">
+                <button id="tab-login-btn" onclick="switchTab('login')" class="flex-1 py-2.5 text-xs font-semibold rounded-xl text-brand-400 bg-gray-800 light:bg-white light:text-brand-600 shadow-sm transition">
+                    Entrar
+                </button>
+                <button id="tab-register-btn" onclick="switchTab('register')" class="flex-1 py-2.5 text-xs font-semibold rounded-xl text-gray-400 hover:text-gray-200 light:hover:text-gray-700 transition">
+                    Cadastrar
+                </button>
+            </div>
+
+            <!-- Conteúdo das Abas -->
+            <div class="p-6">
+                
+                <!-- Feedback de Erro/Alerta -->
+                <div id="auth-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span id="auth-error-text">Ocorreu um erro ao autenticar.</span>
+                </div>
+
+                <!-- Formulário de Login -->
+                <form id="login-form" onsubmit="handleEmailLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">E-mail</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
+                                <i class="fa-regular fa-envelope text-sm"></i>
+                            </span>
+                            <input type="email" id="login-email" required placeholder="seu@email.com" class="w-full pl-10 pr-4 py-2.5 bg-gray-800/60 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-white light:text-gray-900 placeholder-gray-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">Senha</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
+                                <i class="fa-solid fa-lock text-sm"></i>
+                            </span>
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-gray-800/60 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-white light:text-gray-900 placeholder-gray-500">
+                        </div>
+                    </div>
+                    <button type="submit" id="btn-login" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-3 rounded-xl shadow-lg shadow-brand-600/25 transition active:scale-98 flex items-center justify-center space-x-2">
+                        <span>Entrar na Conta</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+
+                <!-- Formulário de Cadastro -->
+                <form id="register-form" onsubmit="handleEmailRegister(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">Nome de Exibição</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
+                                <i class="fa-regular fa-user text-sm"></i>
+                            </span>
+                            <input type="text" id="register-name" required placeholder="Seu Nome ou Apelido" maxlength="30" class="w-full pl-10 pr-4 py-2.5 bg-gray-800/60 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-white light:text-gray-900 placeholder-gray-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">E-mail</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
+                                <i class="fa-regular fa-envelope text-sm"></i>
+                            </span>
+                            <input type="email" id="register-email" required placeholder="seu@email.com" class="w-full pl-10 pr-4 py-2.5 bg-gray-800/60 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-white light:text-gray-900 placeholder-gray-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1">Senha (Mínimo 6 caracteres)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
+                                <i class="fa-solid fa-lock text-sm"></i>
+                            </span>
+                            <input type="password" id="register-password" required minlength="6" placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-gray-800/60 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-white light:text-gray-900 placeholder-gray-500">
+                        </div>
+                    </div>
+                    <button type="submit" id="btn-register" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-3 rounded-xl shadow-lg shadow-brand-600/25 transition active:scale-98 flex items-center justify-center space-x-2">
+                        <span>Criar Nova Conta</span>
+                        <i class="fa-solid fa-user-plus text-xs"></i>
+                    </button>
+                </form>
+
+                <!-- Divisor -->
+                <div class="relative my-5 flex items-center justify-center">
+                    <div class="border-t border-gray-800 light:border-gray-200 w-full"></div>
+                    <span class="bg-gray-900 light:bg-white px-3 text-[11px] font-medium text-gray-500 uppercase tracking-wider absolute">ou continue com</span>
+                </div>
+
+                <!-- Botões Sociais e Anônimo -->
+                <div class="space-y-2">
+                    <button onclick="handleGoogleSignIn()" class="w-full bg-gray-800 hover:bg-gray-700 light:bg-gray-100 light:hover:bg-gray-200 text-white light:text-gray-800 text-xs font-semibold py-2.5 px-4 rounded-xl border border-gray-700/60 light:border-gray-300 transition flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        <span>Entrar com Google</span>
+                    </button>
+
+                    <button onclick="handleAnonymousSignIn()" class="w-full bg-transparent hover:bg-gray-800/40 text-gray-400 hover:text-gray-200 text-xs font-medium py-2 rounded-xl transition">
+                        Entrar como Visitante Anônimo
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Interface Principal do Chat -->
+    <div class="flex flex-col h-full w-full max-w-4xl bg-gray-900/90 light:bg-white/90 shadow-2xl md:h-[92vh] md:rounded-3xl border border-gray-800/80 light:border-gray-200 overflow-hidden relative">
+        
+        <!-- Header da Aplicação -->
+        <div class="p-4 border-b border-gray-800 light:border-gray-200 flex items-center justify-between glass sticky top-0 z-10">
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <img id="user-avatar" src="https://placehold.co/100x100/2563eb/ffffff?text=U" alt="Perfil" class="w-10 h-10 rounded-full object-cover border-2 border-brand-500 shadow">
+                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-gray-900 light:border-white rounded-full"></span>
+                </div>
+                <div>
+                    <h1 id="user-display-name" class="font-semibold text-sm leading-tight text-white light:text-gray-900">Carregando...</h1>
+                    <p class="text-[11px] text-green-400 font-medium flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> Online no Chat Global
+                    </p>
+                </div>
+            </div>
+
+            <!-- Ações Rápidas -->
+            <div class="flex items-center space-x-1">
+                <button onclick="toggleDarkMode()" class="p-2.5 text-gray-400 hover:text-white light:text-gray-600 light:hover:text-gray-900 rounded-xl hover:bg-gray-800/60 light:hover:bg-gray-100 transition" title="Alternar Tema">
+                    <i id="theme-icon" class="fa-solid fa-sun text-base"></i>
+                </button>
+                <button onclick="handleSignOut()" class="p-2.5 text-gray-400 hover:text-red-400 light:text-gray-600 light:hover:text-red-600 rounded-xl hover:bg-gray-800/60 light:hover:bg-gray-100 transition" title="Sair da Conta">
+                    <i class="fa-solid fa-right-from-bracket text-base"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Área de Histórico de Mensagens -->
+        <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950/40 light:bg-gray-50/50">
+            <div id="loading-state" class="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
+                <i class="fa-solid fa-circle-notch fa-spin text-2xl text-brand-500"></i>
+                <p class="text-xs">Conectando ao chat ao vivo...</p>
+            </div>
+        </div>
+
+        <!-- Área de Input da Mensagem -->
+        <div class="p-3 md:p-4 border-t border-gray-800 light:border-gray-200 bg-gray-900/90 light:bg-white relative">
+            
+            <!-- Picker de Emoji Simples -->
+            <div id="emoji-picker" class="hidden absolute bottom-16 left-4 bg-gray-800 light:bg-white border border-gray-700 light:border-gray-200 shadow-2xl rounded-2xl p-3 grid grid-cols-6 gap-2 z-30">
+                <button onclick="insertEmoji('😊')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">😊</button>
+                <button onclick="insertEmoji('🚀')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">🚀</button>
+                <button onclick="insertEmoji('👍')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">👍</button>
+                <button onclick="insertEmoji('🔥')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">🔥</button>
+                <button onclick="insertEmoji('❤️')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">❤️</button>
+                <button onclick="insertEmoji('✨')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">✨</button>
+                <button onclick="insertEmoji('🎉')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">🎉</button>
+                <button onclick="insertEmoji('😎')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">😎</button>
+                <button onclick="insertEmoji('💡')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">💡</button>
+                <button onclick="insertEmoji('👏')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">👏</button>
+                <button onclick="insertEmoji('😂')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">😂</button>
+                <button onclick="insertEmoji('💯')" class="text-lg p-1.5 hover:bg-gray-700 light:hover:bg-gray-100 rounded-lg">💯</button>
+            </div>
+
+            <form onsubmit="sendMessage(event)" class="flex items-center space-x-2">
+                <button type="button" onclick="toggleEmojiPicker()" class="p-2.5 text-gray-400 hover:text-brand-500 rounded-xl hover:bg-gray-800 light:hover:bg-gray-100 transition">
+                    <i class="fa-regular fa-face-smile text-xl"></i>
+                </button>
+                <input type="text" id="message-input" autocomplete="off" placeholder="Escreva uma mensagem..." class="flex-1 bg-gray-800/80 light:bg-gray-100 border border-gray-700/60 light:border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-white light:text-gray-900 placeholder-gray-500">
+                <button type="submit" id="btn-send" class="bg-brand-600 hover:bg-brand-700 text-white w-11 h-11 rounded-xl flex items-center justify-center shadow-lg shadow-brand-600/20 transition transform active:scale-95">
+                    <i class="fa-solid fa-paper-plane text-sm"></i>
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Script com Módulos Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signInWithPopup, 
+            GoogleAuthProvider, 
+            signInAnonymously, 
+            updateProfile, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            onSnapshot, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuração Firebase solicitada
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZkHay48IpUuyggM0VLZkEHBDHcmNchuQ",
+            authDomain: "chat-livre-b084b.firebaseapp.com",
+            projectId: "chat-livre-b084b",
+            storageBucket: "chat-livre-b084b.firebasestorage.app",
+            messagingSenderId: "228844977238",
+            appId: "1:228844977238:web:69b046e71939d2f0f0cff7"
+        };
+
+        // Inicializar Firebase e Serviços
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let unsubscribeChat = null;
+
+        // Monitorar Estado de Autenticação
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-modal').classList.add('hidden');
+                
+                // Exibir dados do usuário no cabeçalho
+                const name = user.displayName || user.email?.split('@')[0] || 'Visitante';
+                const photo = user.photoURL || `https://placehold.co/100x100/2563eb/ffffff?text=${encodeURIComponent(name.charAt(0).toUpperCase())}`;
+                
+                document.getElementById('user-display-name').innerText = name;
+                document.getElementById('user-avatar').src = photo;
+
+                // Iniciar escuta das mensagens em tempo real
+                initRealtimeChat();
+            } else {
+                currentUser = null;
+                document.getElementById('auth-modal').classList.remove('hidden');
+                if (unsubscribeChat) unsubscribeChat();
+            }
+        });
+
+        // Alternar entre abas de Login e Cadastro
+        window.switchTab = function(tab) {
+            hideError();
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const loginBtn = document.getElementById('tab-login-btn');
+            const registerBtn = document.getElementById('tab-register-btn');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                loginBtn.className = "flex-1 py-2.5 text-xs font-semibold rounded-xl text-brand-400 bg-gray-800 light:bg-white light:text-brand-600 shadow-sm transition";
+                registerBtn.className = "flex-1 py-2.5 text-xs font-semibold rounded-xl text-gray-400 hover:text-gray-200 light:hover:text-gray-700 transition";
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                registerBtn.className = "flex-1 py-2.5 text-xs font-semibold rounded-xl text-brand-400 bg-gray-800 light:bg-white light:text-brand-600 shadow-sm transition";
+                loginBtn.className = "flex-1 py-2.5 text-xs font-semibold rounded-xl text-gray-400 hover:text-gray-200 light:hover:text-gray-700 transition";
+            }
+        };
+
+        // Autenticação com Login (E-mail / Senha)
+        window.handleEmailLogin = async function(e) {
+            e.preventDefault();
+            hideError();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (err) {
+                showError("Erro ao entrar: E-mail ou senha inválidos.");
+            }
+        };
+
+        // Cadastro com E-mail, Senha e Nome de Exibição
+        window.handleEmailRegister = async function(e) {
+            e.preventDefault();
+            hideError();
+            const name = document.getElementById('register-name').value.trim();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, {
+                    displayName: name,
+                    photoURL: `https://placehold.co/100x100/2563eb/ffffff?text=${encodeURIComponent(name.charAt(0).toUpperCase())}`
+                });
+                location.reload();
+            } catch (err) {
+                if (err.code === 'auth/email-already-in-use') {
+                    showError("Este e-mail já está em uso.");
+                } else if (err.code === 'auth/weak-password') {
+                    showError("A senha deve ter pelo menos 6 caracteres.");
+                } else {
+                    showError("Falha no cadastro. Verifique os dados digitados.");
+                }
+            }
+        };
+
+        // Autenticação com Google
+        window.handleGoogleSignIn = async function() {
+            hideError();
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (err) {
+                showError("Não foi possível autenticar com o Google.");
+            }
+        };
+
+        // Autenticação Anônima
+        window.handleAnonymousSignIn = async function() {
+            hideError();
+            try {
+                await signInAnonymously(auth);
+            } catch (err) {
+                showError("Erro ao acessar como visitante.");
+            }
+        };
+
+        // Sair do App
+        window.handleSignOut = function() {
+            signOut(auth);
+        };
+
+        // Enviar Mensagem para a Coleção 'messages'
+        window.sendMessage = async function(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const displayName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Visitante';
+            const photoURL = currentUser.photoURL || `https://placehold.co/100x100/2563eb/ffffff?text=${encodeURIComponent(displayName.charAt(0).toUpperCase())}`;
+
+            input.value = '';
+            document.getElementById('emoji-picker').classList.add('hidden');
+
+            try {
+                // Salvando com createdAt usando serverTimestamp()
+                await addDoc(collection(db, 'messages'), {
+                    text: text,
+                    sender: displayName,
+                    photoURL: photoURL,
+                    uid: currentUser.uid,
+                    createdAt: serverTimestamp()
+                });
+            } catch (err) {
+                console.error("Erro ao salvar mensagem no Firestore:", err);
+            }
+        };
+
+        // Sincronização em Tempo Real (Firestore) com tratamento para createdAt
+        function initRealtimeChat() {
+            const messagesRef = collection(db, 'messages');
+
+            unsubscribeChat = onSnapshot(messagesRef, (snapshot) => {
+                const container = document.getElementById('messages-container');
+                let messages = [];
+
+                snapshot.forEach((doc) => {
+                    messages.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Ordenar por createdAt tratando timestamptz pendentes do servidor para evitar sumiço de mensagens novas
+                messages.sort((a, b) => {
+                    const timeA = a.createdAt ? a.createdAt.toMillis() : Date.now();
+                    const timeB = b.createdAt ? b.createdAt.toMillis() : Date.now();
+                    return timeA - timeB;
+                });
+
+                container.innerHTML = '';
+
+                if (messages.length === 0) {
+                    container.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center text-center text-gray-500">
+                            <i class="fa-regular fa-comments text-4xl mb-2 text-brand-500/50"></i>
+                            <p class="text-sm font-medium">Nenhuma mensagem ainda.</p>
+                            <p class="text-xs text-gray-600">Seja o primeiro a dar um oi no chat!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                messages.forEach((msg) => {
+                    const isMe = currentUser && msg.uid === currentUser.uid;
+                    const dateObj = msg.createdAt ? new Date(msg.createdAt.toDate()) : new Date();
+                    const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `flex space-x-2.5 mb-3 ${isMe ? 'justify-end' : 'justify-start'}`;
+
+                    const avatarImg = msg.photoURL || `https://placehold.co/100x100/2563eb/ffffff?text=${encodeURIComponent((msg.sender || 'U').charAt(0).toUpperCase())}`;
+
+                    msgDiv.innerHTML = `
+                        ${!isMe ? `<img src="${avatarImg}" class="w-8 h-8 rounded-full object-cover mt-1 border border-gray-700 shadow-sm flex-shrink-0">` : ''}
+                        <div class="max-w-[78%] md:max-w-[65%]">
+                            ${!isMe ? `<span class="text-[11px] font-semibold text-gray-400 block mb-1 ml-1">${escapeHtml(msg.sender || 'Usuário')}</span>` : ''}
+                            <div class="rounded-2xl px-4 py-2.5 shadow-sm ${
+                                isMe 
+                                    ? 'bg-brand-600 text-white rounded-br-none' 
+                                    : 'bg-gray-800 light:bg-white text-gray-100 light:text-gray-800 border border-gray-700/60 light:border-gray-200 rounded-bl-none'
+                            }">
+                                <p class="text-sm leading-relaxed break-words">${escapeHtml(msg.text)}</p>
+                                <span class="text-[9px] block text-right mt-1 ${isMe ? 'text-brand-200' : 'text-gray-400'}">${timeStr}</span>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(msgDiv);
+                });
+
+                // Rolagem automática
+                container.scrollTop = container.scrollHeight;
+            }, (error) => {
+                console.error("Erro na escuta do Firestore:", error);
+            });
+        }
+
+        // Utilitários de Interface
+        function showError(msg) {
+            const errBox = document.getElementById('auth-error');
+            document.getElementById('auth-error-text').innerText = msg;
+            errBox.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('auth-error').classList.add('hidden');
+        }
+
+        window.toggleDarkMode = function() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                icon.className = "fa-solid fa-moon text-base";
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                icon.className = "fa-solid fa-sun text-base text-yellow-400";
+            }
+        };
+
+        window.toggleEmojiPicker = function() {
+            document.getElementById('emoji-picker').classList.toggle('hidden');
+        };
+
+        window.insertEmoji = function(emoji) {
+            const input = document.getElementById('message-input');
+            input.value += emoji;
+            input.focus();
+        };
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+        }
+    </script>
+</body>
+</html>
